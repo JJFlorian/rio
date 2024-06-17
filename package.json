@@ -3,7 +3,9 @@
     "browserslist": "> 0.5%, last 2 versions, not dead",
     "dependencies": {
         "highlight.js": "^11.9.0",
-        "micromark": "^4.0.0"
+        "leaflet": "^1.9.4",
+        "micromark": "^4.0.0",
+        "sass": "^1.77.5"
     },
     "devDependencies": {
         "vite": "^5.2.12",

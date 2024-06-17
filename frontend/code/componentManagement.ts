@@ -27,6 +27,7 @@ import { KeyEventListenerComponent } from './components/keyEventListener';
 import { LayoutDisplayComponent } from './components/layoutDisplay';
 import { LinkComponent } from './components/link';
 import { ListViewComponent } from './components/listView';
+import { MapComponent } from './components/map';
 import { MarginComponent } from './components/margin';
 import { MarkdownComponent } from './components/markdown';
 import { MediaPlayerComponent } from './components/mediaPlayer';
@@ -88,6 +89,7 @@ const COMPONENT_CLASSES = {
     'LayoutDisplay-builtin': LayoutDisplayComponent,
     'Link-builtin': LinkComponent,
     'ListView-builtin': ListViewComponent,
+    'Map-builtin': MapComponent,
     'Margin-builtin': MarginComponent,
     'Markdown-builtin': MarkdownComponent,
     'MediaPlayer-builtin': MediaPlayerComponent,
