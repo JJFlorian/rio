@@ -8,6 +8,8 @@ from .fundamental_component import FundamentalComponent
 
 __all__ = ["Map"]
 
+BaseLayer = Literal["ROADMAP", "SATELLITE", "TERRAIN"]
+
 
 @final
 class Map(FundamentalComponent):
@@ -15,6 +17,8 @@ class Map(FundamentalComponent):
     Displays a map with markers.
 
     ## Attributes
+
+    `base_layer`: The baselayer of the map. Options are 'ROADMAP', 'SATELLITE', 'TERRAIN'.
 
     `center`: The initial center of the map [latitude, longitude].
 
@@ -38,6 +42,7 @@ class Map(FundamentalComponent):
     ```
     """
 
+    base_layer: BaseLayer
     center: tuple[float, float]
     zoom: int
     markers: list[dict[str, tuple[float, float] | str]]
@@ -49,6 +54,7 @@ class Map(FundamentalComponent):
         zoom: int,
         markers: list[dict[str, tuple[float, float] | str]],
         *,
+        base_layer: BaseLayer = "TERRAIN",
         corner_radius: float | tuple[float, float, float, float] | None = None,
         key: str | int | None = None,
         margin: float | None = None,
@@ -77,7 +83,7 @@ class Map(FundamentalComponent):
             align_x=align_x,
             align_y=align_y,
         )
-
+        self.base_layer = base_layer
         self.center = center
         self.zoom = zoom
         self.markers = markers
@@ -95,6 +101,7 @@ class Map(FundamentalComponent):
             corner_radius = self.corner_radius
 
         return {
+            "base_layer": self.base_layer,
             "center": self.center,
             "zoom": self.zoom,
             "markers": self.markers,

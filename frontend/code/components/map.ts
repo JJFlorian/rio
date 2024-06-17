@@ -13,32 +13,34 @@ type MapState = ComponentState & {
     zoom: number;
     markers: MarkerData[];
     corner_radius?: [number, number, number, number];
+    base_layer: 'ROADMAP' | 'SATELLITE' | 'TERRAIN';
 };
 
 let fetchLeafletPromise: Promise<void> | null = null;
 
 function withLeaflet(callback: () => void): void {
-    // If Leaflet is already loaded just call the callback
     if (typeof window['L'] !== 'undefined') {
         callback();
         return;
     }
 
-    // If Leaflet is currently being fetched, wait for it to finish
     if (fetchLeafletPromise !== null) {
         fetchLeafletPromise.then(callback);
         return;
     }
 
-    // Otherwise fetch Leaflet and call the callback when it's done
     console.debug('Fetching leaflet.js and leaflet.css');
     let script = document.createElement('script');
-    script.src = 'https://unpkg.com/leaflet/dist/leaflet.js';
+    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    script.integrity = 'sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=';
+    script.crossOrigin = '';
     script.async = true;
 
     let link = document.createElement('link');
     link.rel = 'stylesheet';
-    link.href = 'https://unpkg.com/leaflet/dist/leaflet.css';
+    link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    link.integrity = 'sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=';
+    link.crossOrigin = '';
 
     fetchLeafletPromise = new Promise((resolve) => {
         script.onload = () => {
@@ -52,9 +54,11 @@ function withLeaflet(callback: () => void): void {
 export class MapComponent extends ComponentBase {
     state: Required<MapState>;
     map: L.Map | null = null;
+    currentBaseLayer: L.TileLayer | null = null;
 
     createElement(): HTMLElement {
         let element = document.createElement('div');
+        element.id = 'map'; // Set the ID for the map element
         element.classList.add('rio-map');
         return element;
     }
@@ -63,11 +67,15 @@ export class MapComponent extends ComponentBase {
         deltaState: MapState,
         latentComponents: Set<ComponentBase>
     ): void {
-        if (deltaState.center !== undefined && deltaState.zoom !== undefined) {
-            const { center, zoom, markers } = deltaState;
+        if (
+            deltaState.center !== undefined &&
+            deltaState.zoom !== undefined &&
+            deltaState.base_layer !== undefined
+        ) {
+            const { center, zoom, markers, base_layer } = deltaState;
 
             withLeaflet(() => {
-                this.renderMap(center, zoom, markers);
+                this.renderMap(center, zoom, markers, base_layer);
             });
         }
         if (deltaState.corner_radius !== undefined) {
@@ -78,22 +86,37 @@ export class MapComponent extends ComponentBase {
         }
     }
 
-    renderMap(center: LatLngTuple, zoom: number, markers: MarkerData[]): void {
+    renderMap(
+        center: LatLngTuple,
+        zoom: number,
+        markers: MarkerData[],
+        base_layer: 'ROADMAP' | 'SATELLITE' | 'TERRAIN'
+    ): void {
         console.log('Rendering map...');
+        const baseLayers: { [key: string]: string } = {
+            ROADMAP:
+                'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+            SATELLITE:
+                'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+            TERRAIN:
+                'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
+        };
+
+        const baseLayerAttributions: { [key: string]: string } = {
+            ROADMAP:
+                '&copy; <a href="https://www.esri.com/en-us/home">Esri</a>',
+            SATELLITE:
+                '&copy; <a href="https://www.esri.com/en-us/home">Esri</a>',
+            TERRAIN:
+                '&copy; <a href="https://www.esri.com/en-us/home">Esri</a>',
+        };
+
         if (!this.map) {
             console.log('Initializing new map...');
             this.map = L.map(this.element, {
                 center: center,
                 zoom: zoom,
-                layers: [
-                    L.tileLayer(
-                        'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                        {
-                            attribution:
-                                '&copy; <a href="https://osm.org/copyright">OpenStreetMap</a> contributors',
-                        }
-                    ),
-                ],
+                layers: [],
             });
 
             // Ensure map container is interactive
@@ -102,6 +125,14 @@ export class MapComponent extends ComponentBase {
             console.log('Updating existing map...');
             this.map.setView(center, zoom);
         }
+
+        // Update base layer
+        if (this.currentBaseLayer) {
+            this.map.removeLayer(this.currentBaseLayer);
+        }
+        this.currentBaseLayer = L.tileLayer(baseLayers[base_layer], {
+            attribution: baseLayerAttributions[base_layer],
+        }).addTo(this.map);
 
         // Clear existing markers
         this.map.eachLayer((layer) => {
